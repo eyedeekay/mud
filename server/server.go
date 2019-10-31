@@ -1,19 +1,26 @@
 package server
 
 import (
+	"bufio"
 	"fmt"
 	"io"
-	"log"
 	"net"
+	"os"
 	"strconv"
+	"strings"
+
+	"go.uber.org/zap"
+
+	"github.com/zrma/mud/command"
 )
 
 type Server struct {
-	port int
+	logger *zap.Logger
+	port   int
 }
 
-func New(port int) *Server {
-	s := Server{port}
+func New(logger *zap.Logger, port int) *Server {
+	s := Server{logger, port}
 	return &s
 }
 
@@ -24,26 +31,35 @@ func (s Server) Run() {
 		panic("couldn't start listening: " + err.Error())
 	}
 
-	conn := clientConn(server)
+	conn := clientConn(s.logger, server)
 	for {
-		go handleConn(<-conn)
+		go handleConn(s.logger, <-conn)
 	}
 }
 
-func clientConn(listener net.Listener) chan net.Conn {
+func clientConn(logger *zap.Logger, listener net.Listener) chan net.Conn {
 	ch := make(chan net.Conn)
 	i := 0
 
 	go func() {
+		sugar := logger.Sugar()
+
 		for {
 			client, err := listener.Accept()
 			if client == nil {
-				fmt.Printf("couldn't accept: " + err.Error())
+				sugar.Errorw(
+					"couldn't accept",
+					"err", err,
+				)
 				continue
 			}
 
 			i++
-			log.Printf("%d: %v <-> %v\n", i, client.LocalAddr(), client.RemoteAddr())
+			sugar.Infow(
+				"connect",
+				"count", i,
+				"addr", fmt.Sprintf("%v <-> %v\n", client.LocalAddr(), client.RemoteAddr()),
+			)
 
 			ch <- client
 		}
@@ -52,16 +68,73 @@ func clientConn(listener net.Listener) chan net.Conn {
 	return ch
 }
 
-func handleConn(client net.Conn) {
+func echo(w io.Writer, args ...string) {
+	const whitespace = " "
+	fmt.Fprintln(w, "당신:", strings.Join(args, whitespace))
+}
+
+func handleConn(logger *zap.Logger, client net.Conn) {
+	sugar := logger.Sugar()
 	defer func() {
 		if err := client.Close(); err != nil {
-			log.Println("method", "close", "err", err)
+			sugar.Errorw(
+				"client close failed",
+				"method", "close",
+				"err", err,
+			)
 		}
-		log.Printf("disconnected: %v\n", client.RemoteAddr())
+		sugar.Infow(
+			fmt.Sprintf("disconnected: %v\n", client.RemoteAddr()),
+			"method", "close",
+		)
 	}()
 
-	// echo
-	if _, err := io.Copy(client, client); err != nil {
-		log.Println("method", "echo", "err", err)
+	const (
+		lf         = '\n'
+		cr         = '\r'
+		lfStr      = string(lf)
+		crStr      = string(cr)
+		whitespace = " "
+	)
+
+	for {
+		reader := bufio.NewReader(client)
+		fmt.Fprintf(client, "] ")
+		input, err := reader.ReadString(lf)
+		if err != nil {
+			if err == io.EOF {
+				return
+			}
+			sugar.Errorw(
+				"client read failed",
+				"err", err,
+			)
+			return
+		}
+
+		input = strings.TrimRight(input, lfStr)
+		input = strings.TrimRight(input, crStr)
+		inputs := strings.Split(input, whitespace)
+
+		args, token := inputs[:len(inputs)-1], inputs[len(inputs)-1]
+		cmd, ok := command.Find(token)
+		if !ok {
+			fmt.Fprintln(client, "그런 명령어는 찾을 수 없습니다:", input)
+			continue
+		}
+
+		v, err := cmd.Func()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "명령어를 실행하는 도중 에러가 발생했습니다.:", err)
+		}
+
+		switch v {
+		case command.Exit:
+			fmt.Fprintln(client, "접속을 종료합니다.")
+			return
+		case command.Echo:
+			echo(client, args...)
+		}
+		fmt.Println(input)
 	}
 }
