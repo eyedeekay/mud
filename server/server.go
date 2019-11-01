@@ -9,17 +9,16 @@ import (
 	"strconv"
 	"strings"
 
-	"go.uber.org/zap"
-
 	"github.com/zrma/mud/command"
+	"github.com/zrma/mud/logging"
 )
 
 type Server struct {
-	logger *zap.Logger
+	logger logging.Logger
 	port   int
 }
 
-func New(logger *zap.Logger, port int) *Server {
+func New(logger logging.Logger, port int) *Server {
 	s := Server{logger, port}
 	return &s
 }
@@ -37,17 +36,15 @@ func (s Server) Run() {
 	}
 }
 
-func clientConn(logger *zap.Logger, listener net.Listener) chan net.Conn {
+func clientConn(logger logging.Logger, listener net.Listener) chan net.Conn {
 	ch := make(chan net.Conn)
 	i := 0
 
 	go func() {
-		sugar := logger.Sugar()
-
 		for {
 			client, err := listener.Accept()
 			if client == nil {
-				sugar.Errorw(
+				logger.Err(
 					"couldn't accept",
 					"err", err,
 				)
@@ -55,7 +52,7 @@ func clientConn(logger *zap.Logger, listener net.Listener) chan net.Conn {
 			}
 
 			i++
-			sugar.Infow(
+			logger.Info(
 				"connect",
 				"count", i,
 				"addr", fmt.Sprintf("%v <-> %v\n", client.LocalAddr(), client.RemoteAddr()),
@@ -73,17 +70,16 @@ func echo(w io.Writer, args ...string) {
 	fmt.Fprintln(w, "당신:", strings.Join(args, whitespace))
 }
 
-func handleConn(logger *zap.Logger, client net.Conn) {
-	sugar := logger.Sugar()
+func handleConn(logger logging.Logger, client net.Conn) {
 	defer func() {
 		if err := client.Close(); err != nil {
-			sugar.Errorw(
+			logger.Err(
 				"client close failed",
 				"method", "close",
 				"err", err,
 			)
 		}
-		sugar.Infow(
+		logger.Info(
 			fmt.Sprintf("disconnected: %v\n", client.RemoteAddr()),
 			"method", "close",
 		)
@@ -105,7 +101,7 @@ func handleConn(logger *zap.Logger, client net.Conn) {
 			if err == io.EOF {
 				return
 			}
-			sugar.Errorw(
+			logger.Err(
 				"client read failed",
 				"err", err,
 			)
