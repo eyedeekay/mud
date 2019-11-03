@@ -41,38 +41,29 @@ type loggerImpl struct {
 	*zap.SugaredLogger
 }
 
-func (l loggerImpl) Info(v ...interface{}) {
+type logFunc func(msg string, keysAndValues ...interface{})
+
+func log(f logFunc, v ...interface{}) {
 	if len(v) == 0 {
 		return
 	}
 	msg := v[0].(string)
 	args := v[1:]
-	l.Infow(msg, args...)
+	f(msg, args...)
+}
+
+func (l loggerImpl) Info(v ...interface{}) {
+	log(l.Infow, v...)
 }
 
 func (l loggerImpl) Warn(v ...interface{}) {
-	if len(v) == 0 {
-		return
-	}
-	msg := v[0].(string)
-	args := v[1:]
-	l.Warnw(msg, args...)
+	log(l.Warnw, v...)
 }
 
 func (l loggerImpl) Err(v ...interface{}) {
-	if len(v) == 0 {
-		return
-	}
-	msg := v[0].(string)
-	args := v[1:]
-	l.Errorw(msg, args...)
+	log(l.Errorw, v...)
 }
 
 func (l loggerImpl) Fatal(v ...interface{}) {
-	if len(v) == 0 {
-		return
-	}
-	msg := v[0].(string)
-	args := v[1:]
-	l.Fatalw(msg, args...)
+	log(l.Fatalw, v...)
 }
