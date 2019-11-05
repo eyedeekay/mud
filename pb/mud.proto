@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+option go_package = "pb";
+
+// The greeting service definition.
+service Mud {
+    // Send a ping
+    rpc Ping (PingRequest) returns (PingReply) {
+    }
+    // Echo
+    rpc Echo (EchoRequest) returns (EchoReply) {
+    }
+}
+
+// The request ping containing name
+message PingRequest {
+    string name = 1;
+}
+
+// The response ping containing message and token
+message PingReply {
+    string name = 1;
+    string token = 2;
+}
+
+// The request echo message
+message EchoRequest {
+    string token = 1;
+    string msg = 2;
+}
+
+// The response echo message
+message EchoReply {
+    string msg = 1;
+}
