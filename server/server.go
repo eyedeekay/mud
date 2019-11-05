@@ -2,38 +2,68 @@ package server
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"net"
 	"os"
 	"strconv"
 	"strings"
+	"time"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 
 	"github.com/zrma/mud/command"
 	"github.com/zrma/mud/logging"
+	"github.com/zrma/mud/pb"
 )
 
 type Server struct {
 	logger logging.Logger
 	port   int
+
+	server *grpc.Server
 }
 
 func New(logger logging.Logger, port int) *Server {
-	s := Server{logger, port}
+	s := Server{logger: logger, port: port}
 	return &s
 }
 
 func (s Server) Run() {
 
 	server, err := net.Listen("tcp", ":"+strconv.Itoa(s.port))
-	if server == nil {
+	if err != nil {
 		panic("couldn't start listening: " + err.Error())
 	}
 
-	conn := clientConn(s.logger, server)
-	for {
-		go handleConn(s.logger, <-conn)
+	opts := []grpc.ServerOption{
+		grpc.KeepaliveParams(keepalive.ServerParameters{
+			MaxConnectionIdle: 120 * time.Second,
+			Time:              60 * time.Second,
+			Timeout:           10 * time.Second,
+		}),
+		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
+			MinTime:             20 * time.Second,
+			PermitWithoutStream: true,
+		}),
 	}
+
+	s.server = grpc.NewServer(opts...)
+
+	pb.RegisterMudServer(s.server, s)
+	if err := s.server.Serve(server); err != nil {
+		panic("failed to serve: " + err.Error())
+	}
+}
+
+func (s Server) Ping(context.Context, *pb.PingRequest) (*pb.PingReply, error) {
+	panic("implement me")
+}
+
+func (s Server) Echo(context.Context, *pb.EchoRequest) (*pb.EchoReply, error) {
+	panic("implement me")
 }
 
 func clientConn(logger logging.Logger, listener net.Listener) chan net.Conn {
