@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pborman/uuid"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 
@@ -58,12 +59,23 @@ func (s Server) Run() {
 	}
 }
 
-func (s Server) Ping(context.Context, *pb.PingRequest) (*pb.PingReply, error) {
-	panic("implement me")
+func (s Server) Ping(ctx context.Context, req *pb.PingRequest) (*pb.PingReply, error) {
+	res := &pb.PingReply{
+		Name:  req.GetName(),
+		Token: uuid.New(),
+	}
+
+	return res, nil
 }
 
-func (s Server) Echo(context.Context, *pb.EchoRequest) (*pb.EchoReply, error) {
-	panic("implement me")
+func (s Server) Echo(ctx context.Context, req *pb.EchoRequest) (*pb.EchoReply, error) {
+	token := req.GetToken()
+	msg := req.GetMsg()
+	res := &pb.EchoReply{
+		Msg: fmt.Sprintf("[%s]:%s", token, msg),
+	}
+
+	return res, nil
 }
 
 func clientConn(logger logging.Logger, listener net.Listener) chan net.Conn {
