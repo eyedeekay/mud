@@ -41,9 +41,11 @@ func (s Server) Run() {
 
 	opts := []grpc.ServerOption{
 		grpc.KeepaliveParams(keepalive.ServerParameters{
-			MaxConnectionIdle: 120 * time.Second,
-			Time:              60 * time.Second,
-			Timeout:           10 * time.Second,
+			MaxConnectionIdle:     3 * time.Minute,
+			Time:                  1 * time.Minute,
+			Timeout:               10 * time.Second,
+			MaxConnectionAge:      5 * time.Minute,
+			MaxConnectionAgeGrace: 30 * time.Second,
 		}),
 		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
 			MinTime:             20 * time.Second,
@@ -60,6 +62,12 @@ func (s Server) Run() {
 }
 
 func (s Server) Ping(ctx context.Context, req *pb.PingRequest) (*pb.PingReply, error) {
+	s.logger.Info(
+		"receive",
+		"method", "Ping",
+		"name", req.GetName(),
+	)
+
 	res := &pb.PingReply{
 		Name:  req.GetName(),
 		Token: uuid.New(),
