@@ -20,6 +20,11 @@ import (
 	"github.com/zrma/mud/pb"
 )
 
+func New(logger logging.Logger, port int) *Server {
+	s := Server{logger: logger, port: port}
+	return &s
+}
+
 type Server struct {
 	logger logging.Logger
 	port   int
@@ -27,13 +32,7 @@ type Server struct {
 	server *grpc.Server
 }
 
-func New(logger logging.Logger, port int) *Server {
-	s := Server{logger: logger, port: port}
-	return &s
-}
-
-func (s Server) Run() {
-
+func (s *Server) Run() {
 	server, err := net.Listen("tcp", ":"+strconv.Itoa(s.port))
 	if err != nil {
 		panic("couldn't start listening: " + err.Error())
@@ -61,7 +60,7 @@ func (s Server) Run() {
 	}
 }
 
-func (s Server) Ping(ctx context.Context, req *pb.PingRequest) (*pb.PingReply, error) {
+func (s *Server) Ping(ctx context.Context, req *pb.PingRequest) (*pb.PingReply, error) {
 	s.logger.Info(
 		"receive",
 		"method", "Ping",
@@ -76,7 +75,7 @@ func (s Server) Ping(ctx context.Context, req *pb.PingRequest) (*pb.PingReply, e
 	return res, nil
 }
 
-func (s Server) Echo(ctx context.Context, req *pb.EchoRequest) (*pb.EchoReply, error) {
+func (s *Server) Echo(ctx context.Context, req *pb.EchoRequest) (*pb.EchoReply, error) {
 	token := req.GetToken()
 	msg := req.GetMsg()
 	res := &pb.EchoReply{

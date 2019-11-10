@@ -1,18 +1,12 @@
 package main
 
 import (
-	"context"
-	"fmt"
 	"log"
 	"os"
-	"strconv"
 	"time"
 
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/keepalive"
-
+	"github.com/zrma/mud/client"
 	"github.com/zrma/mud/logging"
-	"github.com/zrma/mud/pb"
 )
 
 const (
@@ -48,53 +42,30 @@ func main() {
 		"method", "main",
 	)
 
-	address := fmt.Sprintf("%s:%s", host, strconv.Itoa(port))
-
-	// Set up a connection to the server.
-	conn, err := grpc.Dial(
-		address,
-		grpc.WithInsecure(),
-		grpc.WithKeepaliveParams(keepalive.ClientParameters{
-			// keepalive settings - https://github.com/grpc/grpc/blob/master/doc/keepalive.md
-			Time:                60 * time.Second,
-			Timeout:             10 * time.Second,
-			PermitWithoutStream: true,
-		}),
-	)
-	if err != nil {
+	c := client.New(logger, host, port)
+	if err := c.Init(); err != nil {
 		logger.Err(
-			"connecting failed",
+			"client initializing failed",
 			"err", err,
 		)
 		return
 	}
-	defer conn.Close()
-	c := pb.NewMudClient(conn)
+	defer func() {
+		if err := c.Close(); err != nil {
+			logger.Err(
+				"client closing failed",
+				"err", err,
+			)
+		}
+	}()
 
-	host, err := os.Hostname()
-	if err != nil {
-		logger.Err(
-			"getting hostname failed",
-			"err", err,
-		)
-		return
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	r, err := c.Ping(ctx, &pb.PingRequest{Name: host})
-	if err != nil {
+	if err := c.PingPong(); err != nil {
 		logger.Err(
 			"api request failed",
 			"method", "Ping",
 			"err", err,
 		)
 	}
-	logger.Info(
-		"api response succeed",
-		"name", r.Name,
-		"token", r.Token,
-	)
 
 	time.Sleep(time.Second)
 	logger.Info("end")
