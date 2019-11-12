@@ -1,11 +1,17 @@
 package main
 
 import (
+	"bufio"
+	"context"
+	"fmt"
+	"io"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/zrma/mud/client"
+	"github.com/zrma/mud/command"
 	"github.com/zrma/mud/logging"
 )
 
@@ -59,12 +65,65 @@ func main() {
 		}
 	}()
 
-	if err := c.PingPong(); err != nil {
-		logger.Err(
-			"api request failed",
-			"method", "Ping",
-			"err", err,
-		)
+	const (
+		lf         = '\n'
+		cr         = '\r'
+		lfStr      = string(lf)
+		crStr      = string(cr)
+		whitespace = " "
+	)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	for ctx.Err() == nil {
+		reader := bufio.NewReader(os.Stdin)
+
+		input, err := reader.ReadString(lf)
+		if err != nil {
+			if err == io.EOF {
+				logger.Info(
+					"input continue",
+					"err", err,
+				)
+				continue
+			}
+			logger.Err(
+				"input failed",
+				"err", err,
+			)
+			return
+		}
+
+		input = strings.TrimRight(input, lfStr)
+		input = strings.TrimRight(input, crStr)
+		inputs := strings.Split(input, whitespace)
+
+		_, token := inputs[:len(inputs)-1], inputs[len(inputs)-1]
+		cmd, ok := command.Find(token)
+		if !ok {
+			fmt.Println("그런 명령어는 찾을 수 없습니다:", input)
+			continue
+		}
+
+		v, err := cmd.Func()
+		if err != nil {
+			fmt.Println("명령어를 실행하는 도중 에러가 발생했습니다.:", err)
+		}
+
+		switch v {
+		case command.Exit:
+			fmt.Println("접속을 종료합니다.")
+			return
+		case command.Echo:
+			if err := c.PingPong(); err != nil {
+				logger.Err(
+					"api request failed",
+					"method", "Ping",
+					"err", err,
+				)
+			}
+		}
+		fmt.Println(input)
 	}
 
 	time.Sleep(time.Second)
