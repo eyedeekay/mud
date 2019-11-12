@@ -7,8 +7,8 @@ service Mud {
     // Send a ping
     rpc Ping (PingRequest) returns (PingReply) {
     }
-    // Echo
-    rpc Echo (EchoRequest) returns (EchoReply) {
+    // Send message
+    rpc Message (MessageRequest) returns (MessageReply) {
     }
 }
 
@@ -23,13 +23,12 @@ message PingReply {
     string token = 2;
 }
 
-// The request echo message
-message EchoRequest {
+// The request message
+message MessageRequest {
     string token = 1;
     string msg = 2;
 }
 
-// The response echo message
-message EchoReply {
-    string msg = 1;
+// The response message
+message MessageReply {
 }

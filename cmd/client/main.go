@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/zrma/mud/client"
@@ -73,8 +74,60 @@ func main() {
 		whitespace = " "
 	)
 
+	authToken, err := c.PingPong()
+	if err != nil {
+		logger.Err(
+			"api request failed",
+			"method", "Ping",
+			"err", err,
+		)
+		return
+	}
+
+	var mutex sync.RWMutex
+
+	waitCh := make(chan interface{})
+	defer close(waitCh)
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	go func() {
+		defer func() {
+			defer cancel()
+			waitCh <- nil
+		}()
+
+		token := authToken
+
+		ticker := time.NewTicker(1 * time.Minute)
+		defer ticker.Stop()
+
+		for ctx.Err() == nil {
+			select {
+			case <-ticker.C:
+				t, err := c.PingPong()
+				if err != nil {
+					logger.Err(
+						"api request failed",
+						"method", "Ping",
+						"err", err,
+					)
+				}
+				if token != t {
+					token = t
+					func(t string) {
+						mutex.Lock()
+						defer mutex.Unlock()
+						authToken = t
+					}(t)
+				}
+			case <-ctx.Done():
+				break
+			}
+		}
+	}()
+
 	for ctx.Err() == nil {
 		reader := bufio.NewReader(os.Stdin)
 
@@ -113,18 +166,24 @@ func main() {
 		switch v {
 		case command.Exit:
 			fmt.Println("접속을 종료합니다.")
-			return
+			cancel()
+			break
 		case command.Echo:
-			if err := c.PingPong(); err != nil {
-				logger.Err(
-					"api request failed",
-					"method", "Ping",
-					"err", err,
-				)
-			}
+			func(msg string) {
+				mutex.RLock()
+				defer mutex.RUnlock()
+				if err := c.SendMessage(authToken, msg); err != nil {
+					logger.Err(
+						"api request failed",
+						"method", "Message",
+						"err", err,
+					)
+				}
+			}(input)
 		}
-		fmt.Println(input)
 	}
+
+	<-waitCh
 
 	time.Sleep(time.Second)
 	logger.Info("end")

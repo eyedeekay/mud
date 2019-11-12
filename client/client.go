@@ -55,17 +55,17 @@ func (c *Client) Close() error {
 	return c.conn.Close()
 }
 
-func (c *Client) PingPong() error {
+func (c *Client) PingPong() (string, error) {
 	host, err := os.Hostname()
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	r, err := c.Ping(ctx, &pb.PingRequest{Name: host})
 	if err != nil {
-		return nil
+		return "", err
 	}
 
 	c.logger.Info(
@@ -73,6 +73,21 @@ func (c *Client) PingPong() error {
 		"name", r.Name,
 		"token", r.Token,
 	)
+
+	token := fmt.Sprintf("%s#%s", r.Name, r.Token)
+	return token, nil
+}
+
+func (c *Client) SendMessage(token, msg string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	_, err := c.Message(ctx, &pb.MessageRequest{
+		Token: token,
+		Msg:   msg,
+	})
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
