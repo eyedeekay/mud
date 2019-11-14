@@ -192,17 +192,99 @@ func (m *MessageReply) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_MessageReply proto.InternalMessageInfo
 
+// The request receive message stream
+type ReceiveRequest struct {
+	Token                string   `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *ReceiveRequest) Reset()         { *m = ReceiveRequest{} }
+func (m *ReceiveRequest) String() string { return proto.CompactTextString(m) }
+func (*ReceiveRequest) ProtoMessage()    {}
+func (*ReceiveRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_332afdaf9af33408, []int{4}
+}
+
+func (m *ReceiveRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ReceiveRequest.Unmarshal(m, b)
+}
+func (m *ReceiveRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ReceiveRequest.Marshal(b, m, deterministic)
+}
+func (m *ReceiveRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ReceiveRequest.Merge(m, src)
+}
+func (m *ReceiveRequest) XXX_Size() int {
+	return xxx_messageInfo_ReceiveRequest.Size(m)
+}
+func (m *ReceiveRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_ReceiveRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ReceiveRequest proto.InternalMessageInfo
+
+func (m *ReceiveRequest) GetToken() string {
+	if m != nil {
+		return m.Token
+	}
+	return ""
+}
+
+// The response message stream
+type ReceiveReply struct {
+	Msg                  string   `protobuf:"bytes,1,opt,name=msg,proto3" json:"msg,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *ReceiveReply) Reset()         { *m = ReceiveReply{} }
+func (m *ReceiveReply) String() string { return proto.CompactTextString(m) }
+func (*ReceiveReply) ProtoMessage()    {}
+func (*ReceiveReply) Descriptor() ([]byte, []int) {
+	return fileDescriptor_332afdaf9af33408, []int{5}
+}
+
+func (m *ReceiveReply) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ReceiveReply.Unmarshal(m, b)
+}
+func (m *ReceiveReply) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ReceiveReply.Marshal(b, m, deterministic)
+}
+func (m *ReceiveReply) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ReceiveReply.Merge(m, src)
+}
+func (m *ReceiveReply) XXX_Size() int {
+	return xxx_messageInfo_ReceiveReply.Size(m)
+}
+func (m *ReceiveReply) XXX_DiscardUnknown() {
+	xxx_messageInfo_ReceiveReply.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ReceiveReply proto.InternalMessageInfo
+
+func (m *ReceiveReply) GetMsg() string {
+	if m != nil {
+		return m.Msg
+	}
+	return ""
+}
+
 func init() {
 	proto.RegisterType((*PingRequest)(nil), "PingRequest")
 	proto.RegisterType((*PingReply)(nil), "PingReply")
 	proto.RegisterType((*MessageRequest)(nil), "MessageRequest")
 	proto.RegisterType((*MessageReply)(nil), "MessageReply")
+	proto.RegisterType((*ReceiveRequest)(nil), "ReceiveRequest")
+	proto.RegisterType((*ReceiveReply)(nil), "ReceiveReply")
 }
 
 func init() { proto.RegisterFile("mud.proto", fileDescriptor_332afdaf9af33408) }
 
 var fileDescriptor_332afdaf9af33408 = []byte{
-	// 186 bytes of a gzipped FileDescriptorProto
+	// 234 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0xcc, 0x2d, 0x4d, 0xd1,
 	0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x57, 0x52, 0xe4, 0xe2, 0x0e, 0xc8, 0xcc, 0x4b, 0x0f, 0x4a, 0x2d,
 	0x2c, 0x4d, 0x2d, 0x2e, 0x11, 0x12, 0xe2, 0x62, 0xc9, 0x4b, 0xcc, 0x4d, 0x95, 0x60, 0x54, 0x60,
@@ -210,11 +292,14 @@ var fileDescriptor_332afdaf9af33408 = []byte{
 	0x10, 0x12, 0xe1, 0x62, 0x2d, 0xc9, 0xcf, 0x4e, 0xcd, 0x93, 0x60, 0x02, 0x0b, 0x42, 0x38, 0x4a,
 	0x16, 0x5c, 0x7c, 0xbe, 0xa9, 0xc5, 0xc5, 0x89, 0xe9, 0xa9, 0x30, 0xc3, 0xe1, 0xea, 0x18, 0x91,
 	0xd4, 0x09, 0x09, 0x70, 0x31, 0xe7, 0x16, 0xa7, 0x43, 0xf5, 0x82, 0x98, 0x4a, 0x7c, 0x5c, 0x3c,
-	0x70, 0x9d, 0x05, 0x39, 0x95, 0x46, 0x61, 0x5c, 0xcc, 0xbe, 0xa5, 0x29, 0x42, 0x4a, 0x5c, 0x2c,
-	0x20, 0x77, 0x08, 0xf1, 0xe8, 0x21, 0xb9, 0x58, 0x8a, 0x4b, 0x0f, 0xee, 0x38, 0x25, 0x06, 0x21,
-	0x6d, 0x2e, 0x76, 0xa8, 0x56, 0x21, 0x7e, 0x3d, 0x54, 0xeb, 0xa5, 0x78, 0xf5, 0x90, 0x4d, 0x55,
-	0x62, 0x70, 0x62, 0x89, 0x62, 0x2a, 0x48, 0x4a, 0x62, 0x03, 0x07, 0x84, 0x31, 0x20, 0x00, 0x00,
-	0xff, 0xff, 0xeb, 0x3d, 0xb3, 0x5f, 0x15, 0x01, 0x00, 0x00,
+	0x70, 0x9d, 0x05, 0x39, 0x95, 0x4a, 0x6a, 0x5c, 0x7c, 0x41, 0xa9, 0xc9, 0xa9, 0x99, 0x65, 0xf8,
+	0x4d, 0x52, 0x52, 0xe0, 0xe2, 0x81, 0xab, 0x03, 0xb9, 0x15, 0x6a, 0x32, 0x23, 0xdc, 0x64, 0xa3,
+	0x56, 0x46, 0x2e, 0x66, 0xdf, 0xd2, 0x14, 0x21, 0x25, 0x2e, 0x16, 0x90, 0x97, 0x84, 0x78, 0xf4,
+	0x90, 0x3c, 0x2f, 0xc5, 0xa5, 0x07, 0xf7, 0xa7, 0x12, 0x83, 0x90, 0x36, 0x17, 0x3b, 0xd4, 0x15,
+	0x42, 0xfc, 0x7a, 0xa8, 0x3e, 0x91, 0xe2, 0xd5, 0x43, 0x71, 0x20, 0x83, 0x90, 0x2e, 0x17, 0x3b,
+	0xd4, 0x6a, 0x21, 0x7e, 0x3d, 0x54, 0xc7, 0x4a, 0xf1, 0xea, 0x21, 0xbb, 0x4a, 0x89, 0xc1, 0x80,
+	0xd1, 0x89, 0x25, 0x8a, 0xa9, 0x20, 0x29, 0x89, 0x0d, 0x1c, 0x05, 0xc6, 0x80, 0x00, 0x00, 0x00,
+	0xff, 0xff, 0x2e, 0x38, 0xf1, 0xd1, 0x8f, 0x01, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -233,6 +318,8 @@ type MudClient interface {
 	Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingReply, error)
 	// Send message
 	Message(ctx context.Context, in *MessageRequest, opts ...grpc.CallOption) (*MessageReply, error)
+	// Receive Stream
+	Receive(ctx context.Context, in *ReceiveRequest, opts ...grpc.CallOption) (Mud_ReceiveClient, error)
 }
 
 type mudClient struct {
@@ -261,12 +348,46 @@ func (c *mudClient) Message(ctx context.Context, in *MessageRequest, opts ...grp
 	return out, nil
 }
 
+func (c *mudClient) Receive(ctx context.Context, in *ReceiveRequest, opts ...grpc.CallOption) (Mud_ReceiveClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_Mud_serviceDesc.Streams[0], "/Mud/Receive", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &mudReceiveClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Mud_ReceiveClient interface {
+	Recv() (*ReceiveReply, error)
+	grpc.ClientStream
+}
+
+type mudReceiveClient struct {
+	grpc.ClientStream
+}
+
+func (x *mudReceiveClient) Recv() (*ReceiveReply, error) {
+	m := new(ReceiveReply)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // MudServer is the server API for Mud service.
 type MudServer interface {
 	// Send a ping
 	Ping(context.Context, *PingRequest) (*PingReply, error)
 	// Send message
 	Message(context.Context, *MessageRequest) (*MessageReply, error)
+	// Receive Stream
+	Receive(*ReceiveRequest, Mud_ReceiveServer) error
 }
 
 // UnimplementedMudServer can be embedded to have forward compatible implementations.
@@ -278,6 +399,9 @@ func (*UnimplementedMudServer) Ping(ctx context.Context, req *PingRequest) (*Pin
 }
 func (*UnimplementedMudServer) Message(ctx context.Context, req *MessageRequest) (*MessageReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Message not implemented")
+}
+func (*UnimplementedMudServer) Receive(req *ReceiveRequest, srv Mud_ReceiveServer) error {
+	return status.Errorf(codes.Unimplemented, "method Receive not implemented")
 }
 
 func RegisterMudServer(s *grpc.Server, srv MudServer) {
@@ -320,6 +444,27 @@ func _Mud_Message_Handler(srv interface{}, ctx context.Context, dec func(interfa
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Mud_Receive_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ReceiveRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(MudServer).Receive(m, &mudReceiveServer{stream})
+}
+
+type Mud_ReceiveServer interface {
+	Send(*ReceiveReply) error
+	grpc.ServerStream
+}
+
+type mudReceiveServer struct {
+	grpc.ServerStream
+}
+
+func (x *mudReceiveServer) Send(m *ReceiveReply) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 var _Mud_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "Mud",
 	HandlerType: (*MudServer)(nil),
@@ -333,6 +478,12 @@ var _Mud_serviceDesc = grpc.ServiceDesc{
 			Handler:    _Mud_Message_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "Receive",
+			Handler:       _Mud_Receive_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "mud.proto",
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/pborman/uuid"
@@ -24,6 +25,9 @@ type Server struct {
 	port   int
 
 	server *grpc.Server
+
+	mutex sync.Mutex
+	msg   []string
 }
 
 func (s *Server) Run() {
@@ -80,5 +84,37 @@ func (s *Server) Message(ctx context.Context, req *pb.MessageRequest) (*pb.Messa
 		"msg", msg,
 	)
 
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	s.msg = append(s.msg, msg)
+
 	return &pb.MessageReply{}, nil
+}
+
+func (s *Server) Receive(req *pb.ReceiveRequest, stream pb.Mud_ReceiveServer) error {
+	ticker := time.NewTicker(time.Millisecond * 300)
+	defer ticker.Stop()
+
+	for stream.Context().Err() == nil {
+		select {
+		case <-ticker.C:
+			if err := func() error {
+				s.mutex.Lock()
+				defer s.mutex.Unlock()
+
+				for _, msg := range s.msg {
+					if err := stream.Send(&pb.ReceiveReply{
+						Msg: msg,
+					}); err != nil {
+						return err
+					}
+				}
+				s.msg = s.msg[:0]
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }

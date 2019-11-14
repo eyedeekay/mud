@@ -10,6 +10,9 @@ service Mud {
     // Send message
     rpc Message (MessageRequest) returns (MessageReply) {
     }
+    // Receive Stream
+    rpc Receive (ReceiveRequest) returns (stream ReceiveReply) {
+    }
 }
 
 // The request ping containing name
@@ -31,4 +34,14 @@ message MessageRequest {
 
 // The response message
 message MessageReply {
+}
+
+// The request receive message stream
+message ReceiveRequest {
+    string token = 1;
+}
+
+// The response message stream
+message ReceiveReply {
+    string msg = 1;
 }

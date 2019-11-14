@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"time"
@@ -61,7 +62,7 @@ func (c *Client) PingPong() (string, error) {
 		return "", err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	r, err := c.Ping(ctx, &pb.PingRequest{Name: host})
 	if err != nil {
@@ -79,7 +80,7 @@ func (c *Client) PingPong() (string, error) {
 }
 
 func (c *Client) SendMessage(token, msg string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	_, err := c.Message(ctx, &pb.MessageRequest{
 		Token: token,
@@ -87,6 +88,30 @@ func (c *Client) SendMessage(token, msg string) error {
 	})
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (c *Client) Subscribe(ctx context.Context, token string, f func(string) error) error {
+	stream, err := c.Receive(ctx, &pb.ReceiveRequest{
+		Token: token,
+	})
+	if err != nil {
+		return err
+	}
+
+	for ctx.Err() == nil {
+		r, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+		if err := f(r.GetMsg()); err != nil {
+			return err
+		}
 	}
 
 	return nil

@@ -85,17 +85,15 @@ func main() {
 	}
 
 	var mutex sync.RWMutex
-
-	waitCh := make(chan interface{})
-	defer close(waitCh)
-
+	var wg sync.WaitGroup
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	wg.Add(1)
 	go func() {
 		defer func() {
 			defer cancel()
-			waitCh <- nil
+			wg.Done()
 		}()
 
 		token := authToken
@@ -125,6 +123,29 @@ func main() {
 			case <-ctx.Done():
 				break
 			}
+		}
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer func() {
+			defer cancel()
+			wg.Done()
+		}()
+
+		mutex.RLock()
+		token := authToken
+		mutex.RUnlock()
+
+		if err := c.Subscribe(ctx, token, func(msg string) error {
+			fmt.Println(msg)
+			return nil
+		}); err != nil && err != context.Canceled {
+			logger.Err(
+				"stream disconnected",
+				"method", "Subscribe",
+				"err", err,
+			)
 		}
 	}()
 
@@ -183,7 +204,7 @@ func main() {
 		}
 	}
 
-	<-waitCh
+	wg.Wait()
 
 	time.Sleep(time.Second)
 	logger.Info("end")
