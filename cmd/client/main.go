@@ -11,6 +11,9 @@ import (
 	"sync"
 	"time"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	"github.com/zrma/mud/client"
 	"github.com/zrma/mud/command"
 	"github.com/zrma/mud/logging"
@@ -140,7 +143,7 @@ func main() {
 		if err := c.Subscribe(ctx, token, func(msg string) error {
 			fmt.Println(msg)
 			return nil
-		}); err != nil && err != context.Canceled {
+		}); err != nil && status.Code(err) != codes.Canceled {
 			logger.Err(
 				"stream disconnected",
 				"method", "Subscribe",
