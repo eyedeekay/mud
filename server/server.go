@@ -2,21 +2,28 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"strconv"
 	"sync"
 	"time"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/pborman/uuid"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 
 	"github.com/zrma/mud/logging"
 	"github.com/zrma/mud/pb"
+	"github.com/zrma/mud/server/session"
 )
 
 func New(logger logging.Logger, port int) *Server {
-	s := Server{logger: logger, port: port}
+	s := Server{
+		logger:  logger,
+		port:    port,
+		session: make(map[string]*session.Session),
+	}
 	return &s
 }
 
@@ -26,8 +33,9 @@ type Server struct {
 
 	server *grpc.Server
 
-	mutex sync.Mutex
-	msg   []string
+	mutex   sync.Mutex
+	session map[string]*session.Session
+	msg     []string
 }
 
 func (s *Server) Run() {
@@ -58,6 +66,10 @@ func (s *Server) Run() {
 	}
 }
 
+const (
+	key = "mud"
+)
+
 func (s *Server) Ping(ctx context.Context, req *pb.PingRequest) (*pb.PingReply, error) {
 	s.logger.Info(
 		"receive",
@@ -65,9 +77,33 @@ func (s *Server) Ping(ctx context.Context, req *pb.PingRequest) (*pb.PingReply, 
 		"name", req.GetName(),
 	)
 
+	name := req.GetName()
+	token := req.GetToken()
+	if token == "" {
+		func() {
+			s.mutex.Lock()
+			defer s.mutex.Unlock()
+
+			token = uuid.New()
+			s.session[token] = session.New()
+		}()
+	}
+
+	// Create a new token object, specifying signing method and the claims
+	// you would like it to contain.
+	newToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"name":  name,
+		"token": token,
+	})
+
+	// Sign and get the complete encoded token as a string using the secret
+	tokenString, err := newToken.SignedString([]byte(key))
+	if err != nil {
+		return nil, err
+	}
 	res := &pb.PingReply{
-		Name:  req.GetName(),
-		Token: uuid.New(),
+		Name:  name,
+		Token: tokenString,
 	}
 
 	return res, nil
@@ -83,6 +119,34 @@ func (s *Server) Message(ctx context.Context, req *pb.MessageRequest) (*pb.Messa
 		"token", token,
 		"msg", msg,
 	)
+
+	// Parse takes the token string and a function for looking up the key. The latter is especially
+	// useful if you use multiple keys for your application.  The standard is to use 'kid' in the
+	// head of the token to identify which key to use, but the parsed token (head and claims) is provided
+	// to the callback, providing flexibility.
+	newToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
+		// Don't forget to validate the alg is what you expect:
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+
+		// hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
+		return []byte(key), nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if claims, ok := newToken.Claims.(jwt.MapClaims); ok && newToken.Valid {
+		s.logger.Info(
+			"decrypted",
+			"method", "Message",
+			"name", claims["name"],
+			"token", claims["token"],
+		)
+	} else {
+		return nil, err
+	}
 
 	s.mutex.Lock()
 	defer s.mutex.Unlock()

@@ -71,12 +71,11 @@ func (c *Client) PingPong() (string, error) {
 
 	c.logger.Info(
 		"api response succeed",
-		"name", r.Name,
-		"token", r.Token,
+		"name", r.GetName(),
+		"token", r.GetToken(),
 	)
 
-	token := fmt.Sprintf("%s#%s", r.Name, r.Token)
-	return token, nil
+	return r.GetToken(), nil
 }
 
 func (c *Client) SendMessage(token, msg string) error {

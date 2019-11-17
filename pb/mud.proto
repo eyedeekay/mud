@@ -18,6 +18,7 @@ service Mud {
 // The request ping containing name
 message PingRequest {
     string name = 1;
+    string token = 2;
 }
 
 // The response ping containing message and token
