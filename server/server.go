@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"strconv"
@@ -35,7 +36,6 @@ type Server struct {
 
 	mutex   sync.Mutex
 	session map[string]*session.Session
-	msg     []string
 }
 
 func (s *Server) Run() {
@@ -120,6 +120,28 @@ func (s *Server) Message(ctx context.Context, req *pb.MessageRequest) (*pb.Messa
 		"msg", msg,
 	)
 
+	if err := parse(token, func(claims jwt.MapClaims) error {
+		s.logger.Info(
+			"decrypted",
+			"method", "Message",
+			"name", claims["name"],
+			"token", claims["token"],
+		)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	for _, v := range s.session {
+		v.Put(msg)
+	}
+
+	return &pb.MessageReply{}, nil
+}
+
+func parse(token string, f func(claims jwt.MapClaims) error) error {
 	// Parse takes the token string and a function for looking up the key. The latter is especially
 	// useful if you use multiple keys for your application.  The standard is to use 'kid' in the
 	// head of the token to identify which key to use, but the parsed token (head and claims) is provided
@@ -134,49 +156,52 @@ func (s *Server) Message(ctx context.Context, req *pb.MessageRequest) (*pb.Messa
 		return []byte(key), nil
 	})
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if claims, ok := newToken.Claims.(jwt.MapClaims); ok && newToken.Valid {
-		s.logger.Info(
-			"decrypted",
-			"method", "Message",
-			"name", claims["name"],
-			"token", claims["token"],
-		)
-	} else {
-		return nil, err
+		return f(claims)
 	}
-
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	s.msg = append(s.msg, msg)
-
-	return &pb.MessageReply{}, nil
+	return errors.New("invalid token")
 }
 
 func (s *Server) Receive(req *pb.ReceiveRequest, stream pb.Mud_ReceiveServer) error {
 	ticker := time.NewTicker(time.Millisecond * 300)
 	defer ticker.Stop()
 
+	var token string
+	if err := parse(req.GetToken(), func(claims jwt.MapClaims) error {
+		s.logger.Info(
+			"decrypted",
+			"method", "Message",
+			"name", claims["name"],
+			"token", claims["token"],
+		)
+		token = claims["token"].(string)
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	sess := func() *session.Session {
+		s.mutex.Lock()
+		defer s.mutex.Unlock()
+
+		return s.session[token]
+	}()
+	if sess == nil {
+		return errors.New("invalid session key")
+	}
+
 	for stream.Context().Err() == nil {
 		select {
 		case <-ticker.C:
-			if err := func() error {
-				s.mutex.Lock()
-				defer s.mutex.Unlock()
-
-				for _, msg := range s.msg {
-					if err := stream.Send(&pb.ReceiveReply{
-						Msg: msg,
-					}); err != nil {
-						return err
-					}
+			for _, m := range sess.Get() {
+				if err := stream.Send(&pb.ReceiveReply{
+					Msg: m,
+				}); err != nil {
+					return err
 				}
-				s.msg = s.msg[:0]
-				return nil
-			}(); err != nil {
-				return err
 			}
 		}
 	}
