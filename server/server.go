@@ -19,10 +19,11 @@ import (
 	"github.com/zrma/mud/server/session"
 )
 
-func New(logger logging.Logger, port int) *Server {
+func New(logger logging.Logger, host string, port int) *Server {
 	s := Server{
 		logger:  logger,
 		port:    port,
+        host:    host,
 		session: make(map[string]*session.Session),
 	}
 	return &s
@@ -31,6 +32,7 @@ func New(logger logging.Logger, port int) *Server {
 type Server struct {
 	logger logging.Logger
 	port   int
+    host   string
 
 	server *grpc.Server
 
@@ -39,7 +41,7 @@ type Server struct {
 }
 
 func (s *Server) Run() {
-	server, err := net.Listen("tcp", ":"+strconv.Itoa(s.port))
+	server, err := net.Listen("tcp", s.host+":"+strconv.Itoa(s.port))
 	if err != nil {
 		panic("couldn't start listening: " + err.Error())
 	}
